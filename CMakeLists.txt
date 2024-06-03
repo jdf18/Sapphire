@@ -11,9 +11,7 @@ include_directories(include)
 set(SOURCES
         src/statements.c
         src/main.c
-        src/database.c
-        src/constants.c
-        src/disk.c
+        src/btree.c
 )
 
 # Define the executable
