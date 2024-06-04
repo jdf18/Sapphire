@@ -4,11 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-
-#define INSERT_STATEMENT_FORMAT "insert %d %" STR(COLUMN_USERNAME_SIZE) "s %" STR(COLUMN_EMAIL_SIZE) "s"
-
 PrepareResult compile_statement(char* input, Statement* statement) {
     if (strncmp(input, "insert", 6) == 0) {
         statement->type = STATEMENT_INSERT;

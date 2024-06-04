@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #define SINGLE_INDENT "    "
 
@@ -31,7 +30,7 @@ Pager* pager_open(const char* filename) {
     }
 
     return pager;
-};
+}
 // Pager freeing is handled inside db_close (free Table)
 
 
@@ -64,7 +63,7 @@ Page* get_page(Pager* pager, uint32_t page_num) {
     }
 
     return pager->pages[page_num];
-};
+}
 
 
 // Returns the highest key that can be indexed inside the node
@@ -76,7 +75,7 @@ uint32_t get_node_max_key(Pager* pager, Node* node) {
     // TODO: Not implemented get_node_max_key for internal nodes (rightmost child, call recursively)
     printf("Not implemented get_node_max_key for internal nodes.\n");
     exit(EXIT_FAILURE);
-};
+}
 
 void indent(uint32_t level) {
     for (uint32_t i = 0; i < level; i++) {
@@ -88,7 +87,6 @@ void indent(uint32_t level) {
 void print_tree(Pager* pager, uint32_t page_num, uint32_t indentation_level) {
     Page* page = get_page(pager, page_num);
     uint32_t num_keys;
-    uint32_t child;
 
     switch (page->node.node_type) {
         case (NODE_LEAF):
