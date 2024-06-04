@@ -13,7 +13,10 @@ FILE* open_file(const char* filename) {
 }
 
 void close_file(FILE* file) {
-    fclose(file);
+    if (fclose(file) != 0) {
+        printf("Error closing the file.\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 
