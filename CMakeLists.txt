@@ -13,6 +13,7 @@ set(SOURCES
         src/main.c
         src/btree.c
         src/pager.c
+        src/file.c
 )
 
 # Define the executable

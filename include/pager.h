@@ -3,6 +3,7 @@
 
 #include "btree.h"
 
+#include <stdio.h>
 #include <stdint.h>
 
 #define TABLE_MAX_PAGES 400
@@ -12,7 +13,7 @@ typedef struct {
 } Page;
 
 typedef struct {
-    int file_descriptor;
+    FILE* file;
     uint32_t file_length;
     uint32_t num_pages;
     Page* pages[TABLE_MAX_PAGES];

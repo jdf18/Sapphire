@@ -2,6 +2,7 @@
 
 #include "definitions.h"
 #include "btree.h"
+#include "file.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -12,8 +13,8 @@
 
 // Memory allocation and freeing
 Pager* pager_open(const char* filename) {
-    int file_descriptor = 0; // TODO: Figure out how to read/write to files
-    int file_length = 0; // TODO: Implement
+    FILE* file = open_file(filename);
+    long file_length = get_file_length(file);
 
     if (file_length % PAGE_SIZE != 0) {
         printf("Database file is not a whole number of pages. Corrupt.\n");
@@ -21,7 +22,7 @@ Pager* pager_open(const char* filename) {
     }
 
     Pager* pager = malloc(sizeof(Pager));
-    pager->file_descriptor = file_descriptor;
+    pager->file = file;
     pager->file_length = file_length;
     pager->num_pages = file_length / PAGE_SIZE;
 
@@ -41,6 +42,7 @@ void pager_fetch_page(Pager* pager, uint32_t page_num) {
 
     if (page_num < num_pages) {
         // Existing page so read bytes of file into Page*
+        read_file_into_memory(pager->file, page, PAGE_SIZE, PAGE_SIZE*page_num);
     } else {
         // Empty page is being created so not required to read from file
         pager->num_pages = page_num + 1;
@@ -111,5 +113,5 @@ void pager_flush(Pager* pager, uint32_t page_num) {
         exit(EXIT_FAILURE);
     }
 
-    //TODO: Write the page to the file
+    memory_write_to_file(pager->file, pager->pages[page_num], PAGE_SIZE, PAGE_SIZE*page_num);
 }
