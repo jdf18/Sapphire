@@ -14,7 +14,7 @@ typedef struct {
 
 Cursor* table_start(Table* table);
 Cursor* table_end(Table* table);
-void* cursor_value(Cursor* cursor);
+uint8_t* cursor_value(Cursor* cursor);
 
 void cursor_advance(Cursor* cursor);
 

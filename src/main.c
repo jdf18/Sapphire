@@ -1,6 +1,15 @@
-#include "../include/main.h"
+#include "main.h"
+#include "table.h"
 
 #include <stdio.h>
+
+#define COLUMN_USERNAME_SIZE 31
+#define COLUMN_EMAIL_SIZE 255
+
+struct {
+    char username[COLUMN_USERNAME_SIZE + 1];
+    char email[COLUMN_EMAIL_SIZE + 1];
+} MyValue;
 
 void print_prompt() { printf("db>"); }
 
@@ -13,6 +22,13 @@ MetaCommandResult execute_meta_command(char * input) {
 }
 
 int main(int argc, char* argv[]) {
+    Table* table = db_open("test.db");
+
+    // * Temporary code until table class is working
+    table->ROW_SIZE = sizeof(MyValue);
+    // ? Should this be equal to LEAF_NODE_MAX_CELLS
+    table->ROWS_PER_PAGE = PAGE_SIZE / table->ROW_SIZE;
+
     char input[MAX_INPUT_SIZE];
 
     while (true) {
@@ -53,6 +69,8 @@ int main(int argc, char* argv[]) {
         execute_statement(&statement);
         printf("Executed.\n");
     }
+
+    db_close(table);
 
     return 0;
 }

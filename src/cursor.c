@@ -21,14 +21,20 @@ Cursor* table_end(Table* table) {
     return cursor;
 }
 
-void* cursor_value(Cursor* cursor) {
+uint8_t* cursor_value(Cursor* cursor) {
     uint32_t row_num = cursor->row_num;
     uint32_t page_num = row_num / cursor->table->ROWS_PER_PAGE;
+
     Page* page = get_page(cursor->table->pager, page_num);
     uint32_t row_offset = row_num % cursor->table->ROWS_PER_PAGE;
-    uint32_t byte_offset = row_offset * cursor->table->ROW_SIZE;
 
-    return page + byte_offset;
+    if (page->node.node_type != NODE_LEAF) {
+        // TODO: What do you do if its an internal node?
+        printf("Node was not of type leaf.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return (page->node.leaf_node->cells[row_offset].value);
 }
 
 void cursor_advance(Cursor* cursor) {
