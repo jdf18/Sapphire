@@ -8,6 +8,8 @@
 typedef struct {
     Pager* pager;
     uint32_t root_page_num;
+    const uint32_t ROWS_PER_PAGE;
+    const uint32_t ROW_SIZE;
 } Table;
 
 Table* db_open(const char* filename);

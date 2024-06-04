@@ -5,8 +5,6 @@
 
 #include <stdint.h>
 
-#define ROW_SIZE 0
-
 typedef uint8_t NodeType;
 enum {
     NODE_INTERNAL = 0,

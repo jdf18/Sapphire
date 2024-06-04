@@ -14,7 +14,8 @@ set(SOURCES
         src/btree.c
         src/pager.c
         src/file.c
-        include/table.h
+        src/table.c
+        src/cursor.c
 )
 
 # Define the executable

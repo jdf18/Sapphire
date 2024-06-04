@@ -31,14 +31,16 @@ const uint32_t LEAF_NODE_FULL_HEADER_SIZE = NODE_HEADER_SIZE + LEAF_NODE_HEADER_
 const uint32_t LEAF_NODE_KEY_SIZE = sizeof(uint32_t);
 const uint32_t LEAF_NODE_KEY_OFFSET = 0;
 
-const uint32_t LEAF_NODE_VALUE_SIZE = ROW_SIZE;
+// TODO: ROW_SIZE is not a property of table. Somehow need to make all of this dynamic.
+// ? Possibly use macros so done at compile time
+// ! const uint32_t LEAF_NODE_VALUE_SIZE = ROW_SIZE;
 const uint32_t LEAF_NODE_VALUE_OFFSET = LEAF_NODE_KEY_OFFSET + LEAF_NODE_KEY_SIZE;
 
-const uint32_t LEAF_NODE_CELL_SIZE = LEAF_NODE_KEY_SIZE + LEAF_NODE_VALUE_SIZE;
+// ! const uint32_t LEAF_NODE_CELL_SIZE = LEAF_NODE_KEY_SIZE + LEAF_NODE_VALUE_SIZE;
 
 
 // LeafNode sizes, and offsets
 
 const uint32_t LEAF_NODE_CELL_SPACE = PAGE_SIZE - LEAF_NODE_FULL_HEADER_SIZE;
 
-const uint32_t LEAF_NODE_MAX_CELLS = LEAF_NODE_CELL_SPACE / LEAF_NODE_CELL_SIZE;
+// ! const uint32_t LEAF_NODE_MAX_CELLS = LEAF_NODE_CELL_SPACE / LEAF_NODE_CELL_SIZE;

@@ -11,6 +11,11 @@ Table* db_open(const char* filename) {
     table->pager = pager;
     table->root_page_num = 0;
 
+    // TODO: setting ROW_SIZE
+    // ? Do I pass in row size as a parameter, or create a header in the database file
+    table->ROW_SIZE;
+    table->ROWS_PER_PAGE;
+
     if (pager->num_pages == 0) {
         // TODO: New db, set up page 0 as a new root node
     }
