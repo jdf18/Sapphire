@@ -26,8 +26,6 @@ typedef struct {
 
 PrepareResult compile_statement(char * input, Statement * statement);
 
-ExecuteResult execute_insert(Statement* statement);
-ExecuteResult execute_select(Statement* statement);
 ExecuteResult execute_statement(Statement* statement);
 
 #endif //SAPPHIRE_STATEMENTS_H

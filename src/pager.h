@@ -16,6 +16,7 @@ typedef struct {
     FILE* file;
     uint32_t file_length;
     uint32_t num_pages;
+    uint32_t ROW_SIZE;
     Page* pages[TABLE_MAX_PAGES];
 } Pager;
 

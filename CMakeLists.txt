@@ -4,8 +4,12 @@ project(Sapphire)
 # Set the compiler
 set(CMAKE_C_COMPILER "C:/Program Files/mingw64/bin/gcc.exe")
 
+#SET(CMAKE_BUILD_TYPE Debug)
+#SET(CMAKE_C_FLAGS_DEBUG "-D_DEBUG")
+
 # Define include directories
 include_directories(include)
+#include_directories(src)
 
 # Add source files
 set(SOURCES
@@ -18,11 +22,19 @@ set(SOURCES
         src/cursor.c
 )
 
-# Define the executable
-add_executable(main ${SOURCES})
+set(TEST_SOURCES
+        tests/test_database.c
+)
 
-# Specify output directory for object files and the executable
-set_target_properties(main PROPERTIES
+# Create the library
+add_library(SapphireDB STATIC ${SOURCES})
+
+# Define the testing executable
+add_executable(TestDatabase ${TEST_SOURCES})
+target_link_libraries(TestDatabase SapphireDB)
+
+## Specify output directory for object files and the executable
+set_target_properties(TestDatabase PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
         OUTPUT_NAME main
 )

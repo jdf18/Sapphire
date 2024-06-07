@@ -34,7 +34,7 @@ uint8_t* cursor_value(Cursor* cursor) {
         exit(EXIT_FAILURE);
     }
 
-    return (page->node.leaf_node->cells[row_offset].value);
+    return (page->node.leaf_node->cells + row_offset*LEAF_NODE_CELL_SIZE(cursor->table) + LEAF_NODE_VALUE_EL_OFFSET);
 }
 
 void cursor_advance(Cursor* cursor) {

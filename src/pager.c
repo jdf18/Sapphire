@@ -25,6 +25,8 @@ Pager* pager_open(const char* filename) {
     pager->file_length = file_length;
     pager->num_pages = file_length / PAGE_SIZE;
 
+    pager->ROW_SIZE = 0; // TODO: Read from file
+
     for (uint32_t i = 0; i < TABLE_MAX_PAGES; i++) {
         pager->pages[i] = NULL;
     }
@@ -70,7 +72,7 @@ Page* get_page(Pager* pager, uint32_t page_num) {
 uint32_t get_node_max_key(Pager* pager, Node* node) {
     if (node->node_type == NODE_LEAF) {
         uint32_t last_cell = node->leaf_node->leaf_node_header.num_cells - 1;
-        return node->leaf_node->cells[last_cell].key;
+        return *(node->leaf_node->cells + LEAF_NODE_CELL_SIZE(pager));
     }
     // TODO: Not implemented get_node_max_key for internal nodes (rightmost child, call recursively)
     printf("Not implemented get_node_max_key for internal nodes.\n");
@@ -95,7 +97,7 @@ void print_tree(Pager* pager, uint32_t page_num, uint32_t indentation_level) {
             printf("- leaf (size %d)\n", num_keys);
             for (uint32_t i = 0; i < num_keys; i++) {
                 indent(indentation_level + 1);
-                printf("- %d\n", page->node.leaf_node->cells[i].key);
+                printf("- %d\n", *(page->node.leaf_node->cells + i*LEAF_NODE_CELL_SIZE(pager) + LEAF_NODE_KEY_EL_OFFSET));
             }
             break;
         case (NODE_INTERNAL):
