@@ -6,7 +6,7 @@ void parse_db_tables(Database* database, Page* root_page) {
     Table** tables = database->tables;
 
     // Set the pointer to the current table information being parsed
-    void* table_pointer = ((void*)root_page + DB_TABLES_BYTES_OFFSET);
+    void* table_pointer = ((void*)root_page + DB_TABLES_OFFSET);
 
     // Create some pointers which can be used to retrieve information from the page.
     uint32_t* length;
@@ -42,14 +42,14 @@ void parse_db_tables(Database* database, Page* root_page) {
         // Iterate through the definitions for the table columns
         for (uint32_t j = 0; j < *num_columns; j++) {
             // Get the values required from each of the columns and store them in the schema
-            type = (void*)(table_pointer + DB_TABLES_COLUMNS_OFFSET + DB_COLUMN_TYPE_OFFSET + (j * DB_COLUMN_SIZE));
-            constraints = (void*)(table_pointer + DB_TABLES_COLUMNS_OFFSET + DB_COLUMN_CONSTRAINT_OFFSET + (j * DB_COLUMN_SIZE));
+            type = (void*)(table_pointer + DB_COLUMNS_OFFSET + DB_COLUMN_TYPE_OFFSET + (j * DB_COLUMN_SIZE));
+            constraints = (void*)(table_pointer + DB_COLUMNS_OFFSET + DB_COLUMN_CONSTRAINT_OFFSET + (j * DB_COLUMN_SIZE));
 
             temp_table_schema->columns[j].type = (int)(*type);
             temp_table_schema->columns[j].constraints = *constraints;
 
             // Copy the column identifier into the column object
-            memcpy(&(temp_table_schema->columns[j].identifier), (void*)(table_pointer + DB_TABLES_COLUMNS_OFFSET + DB_COLUMN_IDENTIFIER_OFFSET + (j * DB_COLUMN_SIZE)), 8);
+            memcpy(&(temp_table_schema->columns[j].identifier), (void*)(table_pointer + DB_COLUMNS_OFFSET + DB_COLUMN_IDENTIFIER_OFFSET + (j * DB_COLUMN_SIZE)), 8);
         }
 
         // Store the table and its schema into the database object
@@ -73,22 +73,22 @@ void parse_db_tables(Database* database, Page* root_page) {
 void parse_db_file(Database* database, Page* root_page) {
     // The file should start with the 4 character sequence "DBJF", defined in MAGIC_STRING
     char* magic = malloc(5);
-    memcpy(magic, root_page + DB_HEADER_MAGIC_BYTES_OFFSET, 4);
+    memcpy(magic, root_page + DB_HEADER_MAGIC_OFFSET, 4);
     magic[4] = '\0';
-    int res = strcmp(magic, MAGIC_STRING);
+    int res = strcmp(magic, DB_HEADER_MAGIC_STRING);
     if (res != 0) {
         printf("Magic string at start of db file is incorrect. Can not parse.\n");
         exit(EXIT_FAILURE);
     }
 
     // Retrieve version, page size, and number of tables from the header
-    uint32_t* version = (void*)((void*)root_page + DB_HEADER_VERSION_BYTES_OFFSET);
+    uint32_t* version = (void*)((void*)root_page + DB_HEADER_VERSION_OFFSET);
     database->version = *version;
 
-    uint32_t* page_size = (void*)((void*)root_page + DB_HEADER_PAGE_SIZE_BYTES_OFFSET);
+    uint32_t* page_size = (void*)((void*)root_page + DB_HEADER_PAGE_SIZE_OFFSET);
     database->page_size = *page_size;
 
-    uint32_t* num_tables = (void*)((void*)root_page + DB_HEADER_NUM_TABLES_BYTES_OFFSET);
+    uint32_t* num_tables = (void*)((void*)root_page + DB_HEADER_NUM_TABLES_OFFSET);
     database->num_tables = *num_tables;
     // TODO: Should test if the version is different to that of the software and either suggest
     // TODO:  a software upgrade or update the file to the newer format
