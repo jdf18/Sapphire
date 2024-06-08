@@ -1,12 +1,17 @@
 #include "test_database.h"
 
-#include "table.h"
+#include "database.h"
 
 #include <stdio.h>
 
 #define FILEPATH "C:\\Users\\Jacob\\CLionProjects\\Sapphire\\test.db"
 
 void print_prompt() { printf("db>"); }
+
+typedef enum {
+    META_COMMAND_SUCCESS,
+    META_COMMAND_UNRECOGNISED
+} MetaCommandResult;
 
 MetaCommandResult execute_meta_command(char * input) {
     if (strcmp(input, ".exit") == 0) {
@@ -16,19 +21,7 @@ MetaCommandResult execute_meta_command(char * input) {
     }
 }
 
-int main(int argc, char* argv[]) {
-    setbuf(stdout, 0);
-
-    Table* table = db_open(FILEPATH);
-
-    // * Temporary code until table class is working
-    table->ROW_SIZE = sizeof(MyValue);
-    table->pager->ROW_SIZE = sizeof(MyValue);
-    // ? Should this be equal to LEAF_NODE_MAX_CELLS
-    table->ROWS_PER_PAGE = PAGE_SIZE / table->ROW_SIZE;
-
-    char input[MAX_INPUT_SIZE];
-
+void REPL(char* input) {
     while (true) {
         // Prompt and receive user input
         print_prompt();
@@ -65,15 +58,30 @@ int main(int argc, char* argv[]) {
         }
 
         execute_statement(&statement);
-        printf("Executed.\n");
+    }
+}
+
+int main(int argc, char* argv[]) {
+    setbuf(stdout, 0);
+
+    Database* database = open_db(FILEPATH);
+
+    Table* table = database->tables[0];
+
+    // Check that the row size matches that of the struct we will use to store it.
+    if (table->schema->ROW_SIZE != sizeof(MyRow)) {
+        printf("Row sizes do not match between database and programs struct. (%d:%llu)", table->schema->ROW_SIZE, sizeof(MyRow));
+        exit(EXIT_FAILURE);
     }
 
-    db_close(table);
+    // Set up an input buffer for the REPL
+    char input[MAX_INPUT_SIZE];
+
+    // Enter into the Read-Evaluate-Print-Loop
+    REPL(input);
+
+    // Close the database and free the rest of memory being used
+    close_db(database);
 
     return 0;
 }
-
-
-void serialise_row();
-
-MyRow deserialise_row();

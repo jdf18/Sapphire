@@ -16,7 +16,7 @@ Pager* pager_open(const char* filename) {
     long file_length = get_file_length(file);
 
     if (file_length % PAGE_SIZE != 0) {
-        printf("Database file is not a whole number of pages. Corrupt.\n");
+        printf("Database file is not a whole number of pages. (%ld Bytes)\n", file_length);
         exit(EXIT_FAILURE);
     }
 
@@ -24,8 +24,6 @@ Pager* pager_open(const char* filename) {
     pager->file = file;
     pager->file_length = file_length;
     pager->num_pages = file_length / PAGE_SIZE;
-
-    pager->ROW_SIZE = 0; // TODO: Read from file
 
     for (uint32_t i = 0; i < TABLE_MAX_PAGES; i++) {
         pager->pages[i] = NULL;

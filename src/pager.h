@@ -9,8 +9,12 @@
 #define TABLE_MAX_PAGES 400
 
 typedef struct {
-    Node node;
+    union {
+        Node node;
+    };
 } Page;
+
+// TODO: Track which pages have been modified and only flush changed pages.
 
 typedef struct {
     FILE* file;
@@ -23,7 +27,6 @@ typedef struct {
 
 // Memory allocation
 Pager* pager_open(const char* filename);
-
 
 // Returns a pointer to the specified page
 Page* get_page(Pager* pager, uint32_t page_num);

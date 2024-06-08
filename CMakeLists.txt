@@ -20,6 +20,7 @@ set(SOURCES
         src/file.c
         src/table.c
         src/cursor.c
+        src/database.c
 )
 
 set(TEST_SOURCES

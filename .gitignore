@@ -10,3 +10,6 @@
 
 /.idea/
 /cmake-build-debug/
+test.db.bak
+test.db
+*.db
