@@ -21,7 +21,21 @@ typedef enum {
 } StatementType;
 
 typedef struct {
+    char table[50];
+    char columns[50];
+    char values[50];
+} StatementInsert;
+
+typedef struct {
+
+} StatementSelect;
+
+typedef struct {
     StatementType type;
+    union {
+        StatementInsert statement_insert;
+        StatementSelect statement_select;
+    };
 } Statement;
 
 PrepareResult compile_statement(char * input, Statement * statement);
