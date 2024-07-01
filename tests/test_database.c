@@ -1,6 +1,7 @@
 #include "test_database.h"
 
 #include "database.h"
+
 #include "../libs/Topaz/topaz.h"
 
 #include <stdio.h>
@@ -63,9 +64,12 @@ void REPL(char* input) {
 }
 
 int main(int argc, char* argv[]) {
+    set_application_logging_level(DEBUG);
+
     setbuf(stdout, 0);
 
     Database* database = open_db(FILEPATH);
+    LOG_INFO("Database set up correctly.", "");
 
     Table* table = database->tables[0];
 
