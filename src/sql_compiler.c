@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 #include "../libs/Topaz/topaz.h"
 
@@ -21,6 +22,8 @@ typedef enum {
     TOKEN_TABLE,
     TOKEN_INTO,
     TOKEN_IDENTIFIER,
+    TOKEN_DISTINCT,
+    TOKEN_ALL,
     TOKEN_UNKNOWN,
 } TokenType;
 
@@ -70,6 +73,12 @@ void lexer(const char * sql, TokenArray_t *tokens) {
         } else if (strncmp(p, "INTO", 4) == 0) {
             TokenArray_add(tokens, create_token(TOKEN_INTO, NULL));
             p += 4;
+        } else if (strncmp(p, "DISTINCT", 8) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_DISTINCT, NULL));
+            p += 8;
+        } else if (strncmp(p, "ALL", 3) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_ALL, NULL));
+            p += 3;
         } else if (isalnum(*p)) {
             // Start of an identifier. Identifiers must start with alnum and can contain alnums or underscores
             const char* start = p;
@@ -96,11 +105,22 @@ typedef enum {
     NODE_UPDATE,
     NODE_DELETE,
     NODE_CREATE_TABLE,
-    NODE_DROP_TABLE
+    NODE_DROP_TABLE,
+    NODE_SELECT_EXPRESSION
 } NodeType;
 
+// Expressions
+
+typedef struct {
+    bool is_wildcard;
+} NodeSelectExpression;
+
+// SQL Instructions
 typedef struct {
     char* table_name;
+    bool is_distinct; // Filters out duplicate results (Defaults false to ALL)
+    NodeSelectExpression* select_expressions;
+    size_t select_expressions_count;
 } NodeSelect;
 
 typedef struct {
@@ -136,6 +156,7 @@ typedef struct {
         NodeDelete delete_node;
         NodeCreateTable create_table_node;
         NodeDropTable drop_table_node;
+        NodeSelectExpression nodeSelectExpression;
     };
 } ASTNode;
 
@@ -146,6 +167,12 @@ ASTNode* allocate_node() {
         LOG_ERROR("Allocation of select node failed during SQL compilation");
         return NULL;
     }
+    return node;
+}
+
+ASTNode* update_select_expression_node(ASTNode* node, bool is_wildcard) {
+    node->type = NODE_SELECT_EXPRESSION;
+    node->nodeSelectExpression.is_wildcard = is_wildcard;
     return node;
 }
 
@@ -169,11 +196,34 @@ ASTNode* update_insert_node(ASTNode* node, const char * table_name, char ** colu
 
 // TODO: The rest of these node generators
 
+// Parsing logic
+
+SQLCompilationResult parse_select_expression(Token** p, ASTNode* ast) {
+    return SQL_COMPILATION_SUCCESS;
+}
+
 SQLCompilationResult parse_select_statement(Token** p, ASTNode* ast) {
+    // * SELECT keyword
     if ((*p)->type != TOKEN_SELECT) {
         LOG_WARN("Parsing select statement, does not begin with a SELECT token. ");
         return SQL_COMPILATION_MISSING_KEYWORD;
     }
+    (*p)++;
+
+    // * Optional DISTINCT/ALL keyword (defaults to all)
+    bool is_distinct = false;
+    if ((*p)->type == TOKEN_DISTINCT) {
+        is_distinct = true;
+        (*p)++;
+    } else if ((*p)->type == TOKEN_ALL) {
+        (*p)++;
+    }
+
+    // * SelectExpression required
+    parse_select_expression(p, ast);
+    // , ...
+
+
     ast = update_select_node(ast, "test");
 
     return SQL_COMPILATION_SUCCESS;
@@ -182,17 +232,25 @@ SQLCompilationResult parse_select_statement(Token** p, ASTNode* ast) {
 SQLCompilationResult parse(Token* tokens, size_t length, ASTNode* ast) {
     Token* p = tokens;
 
-    if (p->type == NODE_SELECT) {
-        SQLCompilationResult result = parse_select_statement(&p, ast);
-        if (result != SQL_COMPILATION_SUCCESS) {
-            return result;
-        }
+    // Parse into an SQL statement
+    SQLCompilationResult result;
+    switch (p->type) {
+        case TOKEN_SELECT:
+            result = parse_select_statement(&p, ast);
+            break;
+        default: // If did not match any statements, return an error
+            return SQL_COMPILATION_MISSING_KEYWORD;
+    }
+    // If an error was produced during statement compilation, return it.
+    if (result != SQL_COMPILATION_SUCCESS) {
+        return result;
     }
 
+    // Check the correct number of tokens have been parsed before returning success.
     if (p == tokens + length) {
-        // Correct number of tokens have been parsed
         return SQL_COMPILATION_SUCCESS;
     }
+    // Tokens remaining to be parsed so error.
     return SQL_COMPILATION_REMAINING_TOKENS;
 }
 
