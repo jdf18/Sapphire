@@ -16,7 +16,6 @@ include_directories(include)
 
 # Add source files
 set(SOURCES
-        src/statements.c
         src/main.c
         src/btree.c
         src/pager.c
@@ -24,6 +23,13 @@ set(SOURCES
         src/table.c
         src/cursor.c
         src/database.c
+        src/vm_executor.c
+        src/vm_executor.h
+        src/sql_compiler.c
+        include/sql_compiler.h
+        src/dynamic_arrays.h
+        src/utils.c
+        src/utils.h
 )
 
 set(TEST_SOURCES
