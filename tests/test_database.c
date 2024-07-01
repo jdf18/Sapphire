@@ -1,6 +1,7 @@
 #include "test_database.h"
 
 #include "database.h"
+#include "../libs/Topaz/topaz.h"
 
 #include <stdio.h>
 
@@ -36,7 +37,7 @@ void REPL(char* input) {
                 case (META_COMMAND_SUCCESS):
                     continue;
                 case (META_COMMAND_UNRECOGNISED):
-                    printf("Unrecognised command '%s'.\n", input);
+                    LOG_ERROR("Unrecognised command '%s'.\n", input);
                     continue;
             }
         }
@@ -70,9 +71,10 @@ int main(int argc, char* argv[]) {
 
     // Check that the row size matches that of the struct we will use to store it.
     if (table->schema->ROW_SIZE != sizeof(MyRow)) {
-        printf("Row sizes do not match between database and programs struct. (%d:%llu)", table->schema->ROW_SIZE, sizeof(MyRow));
+        LOG_ERROR("Row sizes do not match between database and programs struct. (%d:%llu)", table->schema->ROW_SIZE, sizeof(MyRow));
         exit(EXIT_FAILURE);
     }
+    LOG_DEBUG("Row sizes match between database and program. (%d)", table->schema->ROW_SIZE);
 
     // Set up an input buffer for the REPL
     char input[MAX_INPUT_SIZE];

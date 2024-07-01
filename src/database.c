@@ -1,9 +1,9 @@
 #include "database.h"
 
+#include "../libs/Topaz/topaz.h"
 
 void parse_db_tables(Database* database, Page* root_page) {
     uint32_t num_tables = database->num_tables;
-    Table** tables = database->tables;
 
     // Set the pointer to the current table information being parsed
     void* table_pointer = ((void*)root_page + DB_TABLES_OFFSET);
@@ -27,12 +27,12 @@ void parse_db_tables(Database* database, Page* root_page) {
         // Allocate memory for the table and its schema
         temp_table = malloc(sizeof(Table));
         if (temp_table == NULL) {
-            printf("temp table null\n");
+            LOG_ERROR("temp table null.");
             exit(EXIT_FAILURE);
         }
         temp_table_schema = (TableSchema*)malloc(sizeof(TableSchema) + ((long long)(*num_columns) * sizeof(TableSchemaColumn)));
         if (temp_table_schema == NULL) {
-            printf("temp table schema null\n");
+            LOG_ERROR("temp table schema null.");
             exit(EXIT_FAILURE);
         }
 
@@ -61,13 +61,14 @@ void parse_db_tables(Database* database, Page* root_page) {
         temp_table->root_page_num = *table_root_node;
         database->tables[i] = temp_table;
 
-
-
         // Advance the table pointer to the next table using the length found earlier
         table_pointer = (void*)((void*)table_pointer + (*length));
+
+        LOG_DEBUG("Successfully read table %d schema from database file. ", i);
     }
 
     // All tables have been found, no information left in this page.
+    LOG_DEBUG("All database tables have been read from the file. ");
 };
 
 void parse_db_file(Database* database, Page* root_page) {
@@ -77,7 +78,7 @@ void parse_db_file(Database* database, Page* root_page) {
     magic[4] = '\0';
     int res = strcmp(magic, DB_HEADER_MAGIC_STRING);
     if (res != 0) {
-        printf("Magic string at start of db file is incorrect. Can not parse.\n");
+        LOG_ERROR("Magic string at start of db file is incorrect. Can not parse.");
         exit(EXIT_FAILURE);
     }
 
@@ -90,6 +91,8 @@ void parse_db_file(Database* database, Page* root_page) {
 
     uint32_t* num_tables = (void*)((void*)root_page + DB_HEADER_NUM_TABLES_OFFSET);
     database->num_tables = *num_tables;
+
+    LOG_INFO("Database file version %d, page size %d, %d tables", database->version, database->page_size, database->num_tables);
     // TODO: Should test if the version is different to that of the software and either suggest
     // TODO:  a software upgrade or update the file to the newer format
 
@@ -110,8 +113,6 @@ Database* open_db(const char* filepath) {
     database->pager = pager;
 
     parse_db_file(database, root_page);
-
-    printf("Database loaded successfully.\n");
 
     return database;
 }
@@ -153,4 +154,6 @@ void close_db(Database* database) {
 
     // Free the database object from memory
     free(database);
+
+    LOG_DEBUG("Database freed from memory");
 }

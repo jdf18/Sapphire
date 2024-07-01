@@ -1,7 +1,10 @@
 #include "table.h"
 #include "file.h"
 
+#include "../libs/Topaz/topaz.h"
+
 #include <stdlib.h>
+#include <string.h>
 
 Table* create_table(Pager* pager) {
     Table* table = malloc(sizeof(Table));
@@ -12,7 +15,7 @@ Table* create_table(Pager* pager) {
     table->ROW_SIZE=0;
 
     // ! Not implemented yet
-    printf("Not implemented yet table.c");
+    LOG_ERROR("Not implemented yet table.c", "");
     exit(EXIT_FAILURE);
     // TODO: New db table, set up a new root node
 
@@ -37,7 +40,7 @@ uint32_t calculate_data_type_size(TableSchemaColumn* column) {
             case 4: // int64
                 return 8;
             default:
-                printf("Invalid data type definition");
+                LOG_ERROR("Invalid data type definition");
                 exit(EXIT_FAILURE);
         }
     } else if (data_class == B(10000000)) {
@@ -46,7 +49,7 @@ uint32_t calculate_data_type_size(TableSchemaColumn* column) {
         uint8_t operand = column->type & mask;
         return operand * BLOB_SIZE_MULTIPLIER;
     }
-    printf("Did not return a size from data type definition.");
+    LOG_ERROR("Did not return a size from data type definition.");
     exit(EXIT_FAILURE);
 }
 

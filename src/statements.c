@@ -1,5 +1,7 @@
 #include "../include/statements.h"
 
+#include "../libs/Topaz/topaz.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +17,7 @@ typedef enum {
 } InsertCompileState;
 
 PrepareResult compile_insert(char* input, StatementInsert* statement) {
+    // TODO: Break this up into simpler functions to improve readability
     input += 12;
 
     InsertCompileState state = TABLE_NAME_SEARCH;
@@ -64,7 +67,7 @@ PrepareResult compile_insert(char* input, StatementInsert* statement) {
                     break;
                 }
                 if (strncmp(input, "values ", 6) != 0) {
-                    printf("Failed to find VALUES in insert statement.\n");
+                    LOG_ERROR("Failed to find VALUES in insert statement.\n");
                     exit(EXIT_FAILURE);
                 }
                 state = VALUES_SEARCH;
@@ -91,8 +94,6 @@ PrepareResult compile_insert(char* input, StatementInsert* statement) {
                     break;
                 }
                 memcpy(statement->values + string_offset, section_start, input-section_start);
-                *(char*)(statement->values + string_offset + (uint64_t)input - section_start) = '\0';
-                input += 1;
                 return PREPARE_SUCCESS;
         }
 

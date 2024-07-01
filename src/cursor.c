@@ -1,7 +1,10 @@
 #include "cursor.h"
 
+#include "../libs/Topaz/topaz.h"
+
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 Cursor* table_start(Table* table) {
     Cursor* cursor = malloc(sizeof(Cursor));
@@ -30,7 +33,7 @@ uint8_t* cursor_value(Cursor* cursor) {
 
     if (page->node.node_type != NODE_LEAF) {
         // TODO: What do you do if its an internal node?
-        printf("Node was not of type leaf.\n");
+        LOG_ERROR("Node was not of type leaf.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -39,7 +42,7 @@ uint8_t* cursor_value(Cursor* cursor) {
 
 void cursor_advance(Cursor* cursor) {
     if (cursor->end_of_table) {
-        printf("Cursor at the end of table. Can not advance.\n");
+        LOG_ERROR("Cursor at the end of table. Can not advance.\n");
         exit(EXIT_FAILURE);
     }
 

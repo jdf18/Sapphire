@@ -4,8 +4,11 @@
 #include "btree.h"
 #include "file.h"
 
+#include "../libs/Topaz/topaz.h"
+
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
 #define SINGLE_INDENT "    "
@@ -16,7 +19,7 @@ Pager* pager_open(const char* filename) {
     long file_length = get_file_length(file);
 
     if (file_length % PAGE_SIZE != 0) {
-        printf("Database file is not a whole number of pages. (%ld Bytes)\n", file_length);
+        LOG_ERROR("Database file is not a whole number of pages. (%ld Bytes)\n", file_length);
         exit(EXIT_FAILURE);
     }
 
@@ -52,7 +55,7 @@ void pager_fetch_page(Pager* pager, uint32_t page_num) {
 // Returns a pointer to the specified page
 Page* get_page(Pager* pager, uint32_t page_num) {
     if (page_num >= TABLE_MAX_PAGES) {
-        printf("Tried to fetch a page number out of bounds. %d > %d.\n",
+        LOG_ERROR("Tried to fetch a page number out of bounds. %d > %d.\n",
                page_num, TABLE_MAX_PAGES);
         exit(EXIT_FAILURE);
     }
@@ -73,7 +76,7 @@ uint32_t get_node_max_key(Pager* pager, Node* node) {
         return *(node->leaf_node->cells + LEAF_NODE_CELL_SIZE(pager));
     }
     // TODO: Not implemented get_node_max_key for internal nodes (rightmost child, call recursively)
-    printf("Not implemented get_node_max_key for internal nodes.\n");
+    LOG_ERROR("Not implemented get_node_max_key for internal nodes.\n");
     exit(EXIT_FAILURE);
 }
 
@@ -107,7 +110,7 @@ void print_tree(Pager* pager, uint32_t page_num, uint32_t indentation_level) {
 // Writes the contents of the page to the file
 void pager_flush(Pager* pager, uint32_t page_num) {
     if (pager->pages[page_num] == NULL) {
-        printf("Tried to flush a null page.\n");
+        LOG_ERROR("Tried to flush a null page.\n");
         exit(EXIT_FAILURE);
     }
 
