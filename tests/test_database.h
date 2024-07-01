@@ -4,8 +4,6 @@
 
 #define MAX_INPUT_SIZE 1024
 
-#include "statements.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

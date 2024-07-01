@@ -1,6 +1,8 @@
 #include "test_database.h"
 
 #include "database.h"
+#include "sql_compiler.h"
+#include "vm_ir.h"
 
 #include "../libs/Topaz/topaz.h"
 
@@ -43,23 +45,9 @@ void REPL(char* input) {
             }
         }
 
-        // Compile command
-        Statement statement;
-        switch (compile_statement(input, &statement)) {
-            case (PREPARE_SUCCESS):
-                break;
-            case (PREPARE_SYNTAX_ERROR):
-                printf("Syntax error: could not parse the statement.\n");
-                continue;
-            case (PREPARE_NEGATIVE_ID):
-                printf("Syntax error: ID should be positive.\n");
-                continue;
-            case (PREPARE_UNRECOGNISED_COMMAND):
-                printf("Unrecognised command at the start of '%s'.\n", input);
-                continue;
-        }
+        Instruction instruction;
+        SQLCompilationResult result = compile_sql_statement(input, &instruction);
 
-        execute_statement(&statement);
     }
 }
 
