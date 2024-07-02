@@ -22,8 +22,11 @@ typedef enum {
     TOKEN_TABLE,
     TOKEN_INTO,
     TOKEN_IDENTIFIER,
+    TOKEN_QUOTE,
     TOKEN_DISTINCT,
     TOKEN_ALL,
+    TOKEN_ASTERISK,
+    TOKEN_PERIOD,
     TOKEN_UNKNOWN,
 } TokenType;
 
@@ -40,6 +43,35 @@ Token create_token(TokenType type, char* value) {
 }
 
 DEFINE_DYNAMIC_ARRAY(Token, TokenArray)
+
+void get_length_of_quote(const char* p, const char** start, const char** end, size_t* length) {
+    *start = p + 1;
+    // Loop until the ending single quote to determine the length of the string
+    *length = 0;
+    while (true) {
+        if (*p == '"') {
+            if (*(p+1) == '"') {
+                p += 2;
+                (*length)--;
+            } else break;
+        } else p++;
+    }
+    *end = p;
+    *length += *end - *start;
+}
+
+void copy_quote(const char* source, const char* start, const char* end, char * destination) {
+    source = start;
+    while (source < end) {
+        *destination = *source;
+        destination++;
+        source++;
+        if (*source == '"') {
+            source++; // Additional increment on source
+        }
+    }
+    *destination = '\0';
+}
 
 void lexer(const char * sql, TokenArray_t *tokens) {
     // initialise the token array
@@ -79,6 +111,34 @@ void lexer(const char * sql, TokenArray_t *tokens) {
         } else if (strncmp(p, "ALL", 3) == 0) {
             TokenArray_add(tokens, create_token(TOKEN_ALL, NULL));
             p += 3;
+        } else if (*p == '*') {
+            TokenArray_add(tokens, create_token(TOKEN_ASTERISK, NULL));
+            p += 1;
+        } else if (*p == '.') {
+            TokenArray_add(tokens, create_token(TOKEN_PERIOD, NULL));
+            p += 1;
+        } else if (*p == '"') {
+            // Start of the quoted name after the double quote.
+            p++;
+
+            // Find the length of the quote
+            const char * start;
+            const char* end;
+            size_t length;
+            get_length_of_quote(p, &start, &end, &length);
+
+            // Allocate memory and copy the string over
+            char * output = (char*)malloc(length + 1); // +1 for \0
+            if (output == NULL) {
+                LOG_ERROR("Memory allocation for quoted name token failed.");
+                return; // TODO: Get an ERROR message for this
+            }
+            copy_quote(p, start, end, output);
+
+            // Return the token
+            TokenArray_add(tokens, create_token(TOKEN_QUOTE, output));
+            p++;
+
         } else if (isalnum(*p)) {
             // Start of an identifier. Identifiers must start with alnum and can contain alnums or underscores
             const char* start = p;
@@ -87,7 +147,6 @@ void lexer(const char * sql, TokenArray_t *tokens) {
             size_t length = p - start;
             char* identifier = my_strndup(start, (int) length);
             TokenArray_add(tokens, create_token(TOKEN_IDENTIFIER, identifier));
-            //free(identifier);
         } else if (isspace(*p)) {
             p++;
         } else {
@@ -106,18 +165,43 @@ typedef enum {
     NODE_DELETE,
     NODE_CREATE_TABLE,
     NODE_DROP_TABLE,
-    NODE_SELECT_EXPRESSION
+    NODE_SELECT_EXPRESSION,
+    NODE_NAME
 } NodeType;
+
+// Fundamental nodes
+
+typedef struct {
+    char * name;
+    // This can either be an identifier, or a quote
+} NodeName;
+
+typedef struct {
+
+} NodeTerm;
 
 // Expressions
 
+typedef enum {
+    NODE_SELECT_EXPRESSION_WILDCARD,
+    NODE_SELECT_EXPRESSION_FAMILY_WILDCARD,
+    NODE_SELECT_EXPRESSION_TERM,
+    NODE_SELECT_EXPRESSION_TERM_ALIAS
+} NodeSelectExpressionType;
+
 typedef struct {
-    bool is_wildcard;
+    NodeSelectExpressionType select_expression_type;
+    union {
+        NodeName familyName;
+        struct {
+            NodeTerm* term;
+            NodeName alias;
+        };
+    };
 } NodeSelectExpression;
 
 // SQL Instructions
 typedef struct {
-    char* table_name;
     bool is_distinct; // Filters out duplicate results (Defaults false to ALL)
     NodeSelectExpression* select_expressions;
     size_t select_expressions_count;
@@ -156,7 +240,8 @@ typedef struct {
         NodeDelete delete_node;
         NodeCreateTable create_table_node;
         NodeDropTable drop_table_node;
-        NodeSelectExpression nodeSelectExpression;
+        NodeSelectExpression select_expression;
+        NodeName name_none;
     };
 } ASTNode;
 
@@ -170,36 +255,82 @@ ASTNode* allocate_node() {
     return node;
 }
 
-ASTNode* update_select_expression_node(ASTNode* node, bool is_wildcard) {
-    node->type = NODE_SELECT_EXPRESSION;
-    node->nodeSelectExpression.is_wildcard = is_wildcard;
-    return node;
+void update_name_node(NodeName * node, char * name) {
+    node->name = strdup(name);
 }
 
-ASTNode* update_select_node(ASTNode *node, const char * table_name) {
+void update_select_expression_node(NodeSelectExpression* node, NodeSelectExpressionType type, NodeName* family_name, NodeTerm* term, NodeName* alias) {
+    node->select_expression_type = type;
+    switch (type) {
+        case NODE_SELECT_EXPRESSION_FAMILY_WILDCARD:
+            update_name_node(&(node->familyName), family_name->name);
+        case NODE_SELECT_EXPRESSION_WILDCARD:
+            break;
+        case NODE_SELECT_EXPRESSION_TERM_ALIAS:
+            update_name_node(&(node->alias), alias->name);
+        case NODE_SELECT_EXPRESSION_TERM:
+            node->term = term;
+            break;
+    }
+}
+
+void update_select_node(ASTNode *node, bool is_distinct, NodeSelectExpression* select_expressions, size_t select_expressions_count) {
     node->type = NODE_SELECT;
-    node->select_node.table_name = strdup(table_name);
-
-    return node;
+    node->select_node.is_distinct = is_distinct;
+    node->select_node.select_expressions = select_expressions;
+    node->select_node.select_expressions_count = select_expressions_count;
 }
 
-ASTNode* update_insert_node(ASTNode* node, const char * table_name, char ** columns, char ** values, size_t column_count, size_t value_count) {
+void update_insert_node(ASTNode * node, const char * table_name, char ** columns, char ** values, size_t column_count, size_t value_count) {
     node->type = NODE_INSERT;
     node->insert_node.table_name = strdup(table_name);
     node->insert_node.columns = columns;
     node->insert_node.values = values;
     node->insert_node.column_count = column_count;
     node->insert_node.value_count = value_count;
-
-    return node;
 }
 
 // TODO: The rest of these node generators
 
 // Parsing logic
 
-SQLCompilationResult parse_select_expression(Token** p, ASTNode* ast) {
-    return SQL_COMPILATION_SUCCESS;
+bool is_parse_name_possible(Token** p) {
+    switch ((*p)->type) {
+        case TOKEN_QUOTE:
+        case TOKEN_IDENTIFIER:
+            return true;
+        default: return false;
+    }
+}
+
+SQLCompilationResult parse_name(Token** p, NodeName* name_node) {
+    switch ((*p)->type) {
+        case TOKEN_QUOTE:
+        case TOKEN_IDENTIFIER:
+            update_name_node(name_node, (*p)->value);
+            return SQL_COMPILATION_SUCCESS;
+        default:
+            return SQL_COMPILATION_INVALID_TOKEN;
+    }
+}
+
+SQLCompilationResult parse_select_expression(Token** p, NodeSelectExpression* select_expression_node) {
+    if ((*p)->type == TOKEN_ASTERISK) {
+        update_select_expression_node(select_expression_node, NODE_SELECT_EXPRESSION_WILDCARD, NULL, NULL, NULL);
+        return SQL_COMPILATION_SUCCESS;
+    }
+
+    if (is_parse_name_possible(p) && ((*p)+1)->type == TOKEN_PERIOD && ((*p)+2)->type == TOKEN_ASTERISK) {
+        NodeName* family_name;
+        family_name = malloc(sizeof(NodeName));
+        parse_name(p, family_name);
+        update_select_expression_node(select_expression_node, NODE_SELECT_EXPRESSION_FAMILY_WILDCARD, family_name, NULL, NULL);
+        return SQL_COMPILATION_SUCCESS;
+    }
+
+    // Term and possible alias, optional AS keyword
+
+    return SQL_COMPILATION_NO_VALID_PATHS;
 }
 
 SQLCompilationResult parse_select_statement(Token** p, ASTNode* ast) {
@@ -219,12 +350,14 @@ SQLCompilationResult parse_select_statement(Token** p, ASTNode* ast) {
         (*p)++;
     }
 
+    NodeSelectExpression * se;
+    se = malloc(sizeof(NodeSelectExpression));
     // * SelectExpression required
-    parse_select_expression(p, ast);
+    parse_select_expression(p, se);
     // , ...
 
+    update_select_node(ast, is_distinct, se, 1);
 
-    ast = update_select_node(ast, "test");
 
     return SQL_COMPILATION_SUCCESS;
 }
