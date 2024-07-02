@@ -47,6 +47,11 @@ void REPL(char* input) {
 
         Instruction instruction;
         SQLCompilationResult result = compile_sql_statement(input, &instruction);
+        if (result != SQL_COMPILATION_SUCCESS) {
+            LOG_WARN("Error occurred");
+        } else {
+            LOG_INFO("Good");
+        }
 
     }
 }

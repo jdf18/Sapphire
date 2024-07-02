@@ -21,12 +21,15 @@ typedef enum {
     TOKEN_DELETE,
     TOKEN_TABLE,
     TOKEN_INTO,
+    TOKEN_FROM,
     TOKEN_IDENTIFIER,
     TOKEN_QUOTE,
     TOKEN_DISTINCT,
     TOKEN_ALL,
+    TOKEN_AS,
     TOKEN_ASTERISK,
     TOKEN_PERIOD,
+    TOKEN_COMMA,
     TOKEN_UNKNOWN,
 } TokenType;
 
@@ -105,17 +108,26 @@ void lexer(const char * sql, TokenArray_t *tokens) {
         } else if (strncmp(p, "INTO", 4) == 0) {
             TokenArray_add(tokens, create_token(TOKEN_INTO, NULL));
             p += 4;
+        } else if (strncmp(p, "FROM", 4) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_FROM, NULL));
+            p += 4;
         } else if (strncmp(p, "DISTINCT", 8) == 0) {
             TokenArray_add(tokens, create_token(TOKEN_DISTINCT, NULL));
             p += 8;
         } else if (strncmp(p, "ALL", 3) == 0) {
             TokenArray_add(tokens, create_token(TOKEN_ALL, NULL));
             p += 3;
+        } else if (strncmp(p, "AS", 2) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_AS, NULL));
+            p += 2;
         } else if (*p == '*') {
             TokenArray_add(tokens, create_token(TOKEN_ASTERISK, NULL));
             p += 1;
         } else if (*p == '.') {
             TokenArray_add(tokens, create_token(TOKEN_PERIOD, NULL));
+            p += 1;
+        } else if (*p == ',') {
+            TokenArray_add(tokens, create_token(TOKEN_COMMA, NULL));
             p += 1;
         } else if (*p == '"') {
             // Start of the quoted name after the double quote.
@@ -200,11 +212,25 @@ typedef struct {
     };
 } NodeSelectExpression;
 
+
+typedef enum {
+    NODE_TABLE_EXPRESSION_DEFAULT,
+    NODE_TABLE_EXPRESSION_ALIASED
+} NodeTableExpressionType;
+
+typedef struct {
+    NodeTableExpressionType table_expression_type;
+    // Does not support table schemas
+    NodeName table_name;
+    NodeName table_alias;
+} NodeTableExpression;
+
 // SQL Instructions
 typedef struct {
     bool is_distinct; // Filters out duplicate results (Defaults false to ALL)
     NodeSelectExpression* select_expressions;
     size_t select_expressions_count;
+    NodeTableExpression* table_expression;
 } NodeSelect;
 
 typedef struct {
@@ -274,11 +300,22 @@ void update_select_expression_node(NodeSelectExpression* node, NodeSelectExpress
     }
 }
 
-void update_select_node(ASTNode *node, bool is_distinct, NodeSelectExpression* select_expressions, size_t select_expressions_count) {
+void update_table_expression_node(NodeTableExpression* node, NodeTableExpressionType type, NodeName* table_name, NodeName* table_alias) {
+    node->table_expression_type = type;
+    switch (type) {
+        case NODE_TABLE_EXPRESSION_ALIASED:
+            update_name_node(&(node->table_alias), table_alias->name);
+        case NODE_TABLE_EXPRESSION_DEFAULT:
+            update_name_node(&(node->table_name), table_name->name);
+    }
+}
+
+void update_select_node(ASTNode *node, bool is_distinct, NodeSelectExpression* select_expressions, size_t select_expressions_count, NodeTableExpression* table_expression) {
     node->type = NODE_SELECT;
     node->select_node.is_distinct = is_distinct;
     node->select_node.select_expressions = select_expressions;
     node->select_node.select_expressions_count = select_expressions_count;
+    node->select_node.table_expression = table_expression;
 }
 
 void update_insert_node(ASTNode * node, const char * table_name, char ** columns, char ** values, size_t column_count, size_t value_count) {
@@ -308,6 +345,7 @@ SQLCompilationResult parse_name(Token** p, NodeName* name_node) {
         case TOKEN_QUOTE:
         case TOKEN_IDENTIFIER:
             update_name_node(name_node, (*p)->value);
+            (*p)++;
             return SQL_COMPILATION_SUCCESS;
         default:
             return SQL_COMPILATION_INVALID_TOKEN;
@@ -317,6 +355,7 @@ SQLCompilationResult parse_name(Token** p, NodeName* name_node) {
 SQLCompilationResult parse_select_expression(Token** p, NodeSelectExpression* select_expression_node) {
     if ((*p)->type == TOKEN_ASTERISK) {
         update_select_expression_node(select_expression_node, NODE_SELECT_EXPRESSION_WILDCARD, NULL, NULL, NULL);
+        (*p)++;
         return SQL_COMPILATION_SUCCESS;
     }
 
@@ -325,15 +364,42 @@ SQLCompilationResult parse_select_expression(Token** p, NodeSelectExpression* se
         family_name = malloc(sizeof(NodeName));
         parse_name(p, family_name);
         update_select_expression_node(select_expression_node, NODE_SELECT_EXPRESSION_FAMILY_WILDCARD, family_name, NULL, NULL);
+        (*p) += 2;
         return SQL_COMPILATION_SUCCESS;
     }
 
-    // Term and possible alias, optional AS keyword
+    // todo: Term and possible alias, optional AS keyword
 
     return SQL_COMPILATION_NO_VALID_PATHS;
 }
 
+SQLCompilationResult parse_table_expression(Token** p, NodeTableExpression* table_expression_node) {
+    // Does not support schema name, otherwise optional [ schemaName TOKEN_PERIOD ] would be here
+    SQLCompilationResult result;
+
+    NodeName* table_name = malloc(sizeof(NodeName));
+    result = parse_name(p, table_name);
+    if (result != SQL_COMPILATION_SUCCESS) return result;
+
+    if (!is_parse_name_possible(p)) {
+        if ((*p)->type != TOKEN_AS) {
+            update_table_expression_node(table_expression_node, NODE_TABLE_EXPRESSION_DEFAULT, table_name, NULL);
+            return SQL_COMPILATION_SUCCESS;
+        }
+        (*p)++; // Skip the AS token
+    }
+
+    NodeName* table_alias;
+    table_alias = malloc(sizeof(NodeName));
+    result = parse_name(p, table_alias);
+    if (result != SQL_COMPILATION_SUCCESS) return result;
+
+    update_table_expression_node(table_expression_node, NODE_TABLE_EXPRESSION_ALIASED, table_name, table_alias);
+    return SQL_COMPILATION_SUCCESS;
+}
+
 SQLCompilationResult parse_select_statement(Token** p, ASTNode* ast) {
+    SQLCompilationResult result;
     // * SELECT keyword
     if ((*p)->type != TOKEN_SELECT) {
         LOG_WARN("Parsing select statement, does not begin with a SELECT token. ");
@@ -350,14 +416,51 @@ SQLCompilationResult parse_select_statement(Token** p, ASTNode* ast) {
         (*p)++;
     }
 
-    NodeSelectExpression * se;
-    se = malloc(sizeof(NodeSelectExpression));
     // * SelectExpression required
-    parse_select_expression(p, se);
-    // , ...
+    PointerArray* select_expressions_array = PointerArray_create();
+    NodeSelectExpression* select_expression;
 
-    update_select_node(ast, is_distinct, se, 1);
+    select_expression = malloc(sizeof(NodeSelectExpression));
+    result = parse_select_expression(p, select_expression);
+    if (result != SQL_COMPILATION_SUCCESS) return result;
+    PointerArray_add(select_expressions_array, select_expression);
 
+    // Loop for the rest of the expressions until FROM token
+    while ((*p)->type != TOKEN_FROM) {
+        if ((*p)->type != TOKEN_COMMA) {
+            LOG_WARN("Unknown token found in place of COMMA inside Select expression list during select statement parsing. ");
+            return SQL_COMPILATION_INVALID_TOKEN;
+        }
+        (*p)++;
+        select_expression = malloc(sizeof(NodeSelectExpression));
+        result = parse_select_expression(p, select_expression);
+        if (result != SQL_COMPILATION_SUCCESS) return result;
+        PointerArray_add(select_expressions_array, select_expression);
+    }
+
+    // Convert dynamic pointer array into a Select Expressions list
+    NodeSelectExpression* array;
+    array = malloc(sizeof(NodeSelectExpression) * select_expressions_array->size);
+    for (int i = 0; i < select_expressions_array->size; i++) {
+        array[i] = *(NodeSelectExpression*)select_expressions_array->data[i];
+    }
+
+    // * FROM token required
+    if ((*p)->type != TOKEN_FROM) {
+        LOG_WARN("Required FROM token in SELECT statement. ");
+        return SQL_COMPILATION_MISSING_KEYWORD;
+    }
+    (*p)++;
+
+    // * tableExpression required
+    NodeTableExpression* table_expression;
+    table_expression = malloc(sizeof(NodeTableExpression));
+    result = parse_table_expression(p, table_expression);
+    if (result != SQL_COMPILATION_SUCCESS) return result;
+
+    // Does not support dynamic columns
+
+    update_select_node(ast, is_distinct, array, select_expressions_array->size, table_expression);
 
     return SQL_COMPILATION_SUCCESS;
 }
@@ -399,9 +502,7 @@ SQLCompilationResult compile_sql_statement(const char* input, Instruction* instr
     // * Syntax Analysis
     ASTNode* ast = allocate_node();
     result = parse(tokens.data, tokens.size, ast);
-    if (result != SQL_COMPILATION_SUCCESS) {
-        return result;
-    }
+    if (result != SQL_COMPILATION_SUCCESS) return result;
 
     // * Semantic Analysis
 
