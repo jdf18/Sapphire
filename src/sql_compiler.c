@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 #include "../libs/Topaz/topaz.h"
@@ -19,7 +20,10 @@ typedef enum {
     TOKEN_INSERT,
     TOKEN_UPDATE,
     TOKEN_DELETE,
+    TOKEN_HAVING,
     TOKEN_TABLE,
+    TOKEN_WHERE,
+    TOKEN_GROUP,
     TOKEN_INTO,
     TOKEN_FROM,
     TOKEN_IDENTIFIER,
@@ -27,6 +31,13 @@ typedef enum {
     TOKEN_DISTINCT,
     TOKEN_ALL,
     TOKEN_AS,
+    TOKEN_BY,
+    TOKEN_NEQ,
+    TOKEN_LTE,
+    TOKEN_GTE,
+    TOKEN_EQ,
+    TOKEN_LT,
+    TOKEN_GT,
     TOKEN_ASTERISK,
     TOKEN_PERIOD,
     TOKEN_COMMA,
@@ -102,8 +113,17 @@ void lexer(const char * sql, TokenArray_t *tokens) {
         } else if (strncmp(p, "DELETE", 6) == 0) {
             TokenArray_add(tokens, create_token(TOKEN_DELETE, NULL));
             p += 6;
+        } else if (strncmp(p, "HAVING", 6) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_HAVING, NULL));
+            p += 6;
         } else if (strncmp(p, "TABLE", 5) == 0) {
             TokenArray_add(tokens, create_token(TOKEN_TABLE, NULL));
+            p += 5;
+        } else if (strncmp(p, "WHERE", 5) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_WHERE, NULL));
+            p += 5;
+        } else if (strncmp(p, "GROUP", 5) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_GROUP, NULL));
             p += 5;
         } else if (strncmp(p, "INTO", 4) == 0) {
             TokenArray_add(tokens, create_token(TOKEN_INTO, NULL));
@@ -120,6 +140,30 @@ void lexer(const char * sql, TokenArray_t *tokens) {
         } else if (strncmp(p, "AS", 2) == 0) {
             TokenArray_add(tokens, create_token(TOKEN_AS, NULL));
             p += 2;
+        } else if (strncmp(p, "BY", 2) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_BY, NULL));
+            p += 2;
+        } else if (strncmp(p, "<>", 2) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_NEQ, NULL));
+            p += 2;
+        } else if (strncmp(p, "<=", 2) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_LTE, NULL));
+            p += 2;
+        } else if (strncmp(p, ">=", 2) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_GTE, NULL));
+            p += 2;
+        } else if (strncmp(p, "!=", 2) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_NEQ, NULL));
+            p += 2;
+        } else if (strncmp(p, "<", 2) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_LT, NULL));
+            p++;
+        } else if (strncmp(p, "=", 2) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_EQ, NULL));
+            p++;
+        } else if (strncmp(p, ">", 2) == 0) {
+            TokenArray_add(tokens, create_token(TOKEN_GT, NULL));
+            p++;
         } else if (*p == '*') {
             TokenArray_add(tokens, create_token(TOKEN_ASTERISK, NULL));
             p += 1;
@@ -225,12 +269,76 @@ typedef struct {
     NodeName table_alias;
 } NodeTableExpression;
 
+typedef struct {
+
+} NodeOperand;
+
+typedef struct NodeExpression NodeExpression;
+
+typedef enum {
+    COMPARE_NEQ,
+    COMPARE_LTE,
+    COMPARE_GTE,
+    COMPARE_EQ,
+    COMPARE_LT,
+    COMPARE_GT
+} ComparisonOperator;
+
+typedef enum {
+    NODE_CONDITION_EXPRESSION,
+    NODE_CONDITION_OPERAND,
+    NODE_CONDITION_OPERAND_COMPARE,
+    NODE_CONDITION_OPERAND_IN,
+    NODE_CONDITION_OPERAND_LIKE,
+    NODE_CONDITION_OPERAND_BETWEEN,
+    NODE_CONDITION_OPERAND_NULL
+} NodeConditionType;
+
+typedef struct {
+    NodeConditionType type;
+    bool negated;
+    union {
+        NodeExpression* expression;
+        NodeOperand* operand;
+        struct {
+            ComparisonOperator comparison_operator;
+            NodeOperand* operandA;
+        } Compare;
+        struct {
+            NodeOperand* operands;
+            size_t operand_count;
+        } In;
+        struct {
+            NodeOperand operandA;
+        } Like;
+        struct {
+            NodeOperand operandA;
+            NodeOperand operandB;
+        } Between;
+        struct {} Null;
+    };
+} NodeCondition;
+
+typedef struct {
+    NodeCondition* conditions;
+    size_t conditions_count;
+} NodeAndCondition;
+
+struct NodeExpression {
+    NodeAndCondition* conditions;
+    size_t conditions_count;
+};
+
 // SQL Instructions
 typedef struct {
     bool is_distinct; // Filters out duplicate results (Defaults false to ALL)
     NodeSelectExpression* select_expressions;
     size_t select_expressions_count;
     NodeTableExpression* table_expression;
+    NodeExpression* where_expression;
+    NodeExpression* group_expressions;
+    size_t group_expressions_count;
+    NodeExpression* having_expression;
 } NodeSelect;
 
 typedef struct {
@@ -310,12 +418,38 @@ void update_table_expression_node(NodeTableExpression* node, NodeTableExpression
     }
 }
 
-void update_select_node(ASTNode *node, bool is_distinct, NodeSelectExpression* select_expressions, size_t select_expressions_count, NodeTableExpression* table_expression) {
+void update_condition_node(NodeCondition* node, NodeConditionType type, bool negated) {
+    node->type = type;
+    node->negated = negated;
+    // The rest of the properties can be set individually after calling this function.
+    // todo: initialise these all to 0 here
+}
+
+void update_and_condition_node(NodeAndCondition* node, NodeCondition* conditions, size_t conditions_count) {
+    node->conditions = conditions;
+    node->conditions_count = conditions_count;
+}
+
+void update_expression_node(NodeExpression* node, NodeAndCondition* conditions, size_t conditions_count) {
+    node->conditions = conditions;
+    node->conditions_count = conditions_count;
+}
+
+void update_select_node(
+        ASTNode *node, bool is_distinct,
+        NodeSelectExpression* select_expressions, size_t select_expressions_count,
+        NodeTableExpression* table_expression, NodeExpression* expression,
+        NodeExpression* group_expressions, size_t group_expressions_count,
+        NodeExpression* having_expression) {
     node->type = NODE_SELECT;
     node->select_node.is_distinct = is_distinct;
     node->select_node.select_expressions = select_expressions;
     node->select_node.select_expressions_count = select_expressions_count;
     node->select_node.table_expression = table_expression;
+    node->select_node.where_expression = expression;
+    node->select_node.group_expressions = group_expressions;
+    node->select_node.group_expressions_count = group_expressions_count;
+    node->select_node.having_expression = having_expression;
 }
 
 void update_insert_node(ASTNode * node, const char * table_name, char ** columns, char ** values, size_t column_count, size_t value_count) {
@@ -398,6 +532,26 @@ SQLCompilationResult parse_table_expression(Token** p, NodeTableExpression* tabl
     return SQL_COMPILATION_SUCCESS;
 }
 
+SQLCompilationResult parse_operand(Token** p, NodeOperand * operand_node) {
+    // todo
+    return SQL_COMPILATION_SUCCESS;
+}
+
+SQLCompilationResult parse_condition(Token** p, NodeCondition * condition_node) {
+    // todo
+    return SQL_COMPILATION_SUCCESS;
+}
+
+SQLCompilationResult parse_and_condition(Token** p, NodeAndCondition * condition_and_node) {
+    // todo
+    return SQL_COMPILATION_SUCCESS;
+}
+
+SQLCompilationResult parse_expression(Token** p, NodeExpression* expression_node) {
+    // todo
+    return SQL_COMPILATION_SUCCESS;
+}
+
 SQLCompilationResult parse_select_statement(Token** p, ASTNode* ast) {
     SQLCompilationResult result;
     // * SELECT keyword
@@ -460,7 +614,75 @@ SQLCompilationResult parse_select_statement(Token** p, ASTNode* ast) {
 
     // Does not support dynamic columns
 
-    update_select_node(ast, is_distinct, array, select_expressions_array->size, table_expression);
+    update_select_node(
+            ast, is_distinct, array, select_expressions_array->size, table_expression,
+            NULL, NULL, 0, NULL);
+
+    PointerArray_free(select_expressions_array);
+
+    // * Optional WHERE keyword and expression
+
+    if ((*p)->type == TOKEN_WHERE) {
+        (*p)++;
+
+        NodeExpression* expression = (NodeExpression*)malloc(sizeof(NodeExpression));
+        result = parse_expression(p, expression);
+        if (result != SQL_COMPILATION_SUCCESS) return result;
+
+        ast->select_node.where_expression = expression;
+    }
+
+    // * Optional GROUP BY keyword and expression
+
+    if ((*p)->type == TOKEN_GROUP && (*p+1)->type == TOKEN_BY) {
+        (*p) += 2;
+
+        NodeExpression* expression = (NodeExpression*)malloc(sizeof(NodeExpression));
+        result = parse_expression(p, expression);
+        if (result != SQL_COMPILATION_SUCCESS) return result;
+
+        ast->select_node.group_expressions = expression;
+        ast->select_node.group_expressions_count = 1;
+
+        //TODO: Support multiple groupings (delimiter TOKEN_COMMA)
+        if ((*p)->type != TOKEN_COMMA) goto goto_having;
+
+        PointerArray* expressions_pointer_array = PointerArray_create();
+        PointerArray_add(expressions_pointer_array, expression);
+
+        while ((*p)->type == TOKEN_COMMA) {
+            (*p)++;
+            parse_expression(p, expression);
+            PointerArray_add(expressions_pointer_array, expression);
+        }
+
+        // Convert dynamic pointer array into a Expressions list
+        NodeExpression * expressions_array;
+        expressions_array = malloc(sizeof(NodeExpression) * expressions_pointer_array->size);
+        for (int i = 0; i < expressions_pointer_array->size; i++) {
+            expressions_array[i] = *(NodeExpression *)expressions_pointer_array->data[i];
+        }
+
+        ast->select_node.group_expressions = expressions_array;
+        ast->select_node.group_expressions_count = expressions_pointer_array->size;
+        PointerArray_free(expressions_pointer_array);
+    }
+    goto_having:
+    // * Optional HAVING keyword and expression
+
+    if ((*p)->type == TOKEN_HAVING) {
+        (*p)++;
+
+        NodeExpression* expression = (NodeExpression*)malloc(sizeof(NodeExpression));
+        result = parse_expression(p, expression);
+        if (result != SQL_COMPILATION_SUCCESS) return result;
+
+        ast->select_node.having_expression = expression;
+    }
+
+    // * ORDER BY
+
+    // * LIMIT
 
     return SQL_COMPILATION_SUCCESS;
 }
