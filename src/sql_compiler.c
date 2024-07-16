@@ -228,13 +228,144 @@ typedef enum {
 // Fundamental nodes
 
 typedef struct {
+    char* value;
+} NodeString;
+
+typedef struct {
+    bool is_true;
+} NodeBoolean;
+
+typedef struct {
+    int32_t value; // From −2,147,483,648 to 2,147,483,647, from −(2^31) to 2^31 − 1
+} NodeInt;
+
+typedef struct {
+    int64_t value; // From −9,223,372,036,854,775,808 to 9,223,372,036,854,775,807, from −(2^63) to 2^63 − 1
+} NodeLong;
+
+typedef struct {
+    double value; // todo change to actually be a decimal. Should be equivalent to java.lang.BigDecimal to conform to SQL
+} NodeDecimal;
+
+typedef enum {
+    NODE_NUMERIC_TYPE_INT,
+    NODE_NUMERIC_TYPE_LONG,
+    NODE_NUMERIC_TYPE_DECIMAL
+} NodeNumericType;
+
+typedef struct {
+    NodeNumericType type;
+    union {
+        NodeInt* node_int;
+        NodeLong* node_long;
+        NodeDecimal* node_decimal;
+    };
+} NodeNumeric;
+
+typedef enum {
+    NODE_VALUE_TYPE_STRING,
+    NODE_VALUE_TYPE_NUMERIC,
+    NODE_VALUE_TYPE_BOOLEAN,
+    NODE_VALUE_TYPE_NULL,
+} NodeValueType;
+
+typedef struct {
+    NodeValueType type;
+    union {
+        NodeString* node_string;
+        NodeNumeric* node_numeric;
+        NodeBoolean* node_boolean;
+    };
+} NodeValue;
+
+typedef struct {
+    bool is_numbered;
+    NodeInt* number;
+} NodeBindParameter;
+
+typedef struct {
     char * name;
     // This can either be an identifier, or a quote
 } NodeName;
 
 typedef struct {
+    bool has_family_name;
+    NodeName* family_name;
+    NodeName* column_name;
+} NodeColumnReference;
 
-} NodeTerm;
+// Predefine NodeTerm so it can be referenced before its declared
+typedef struct NodeTerm NodeTerm;
+
+typedef struct {
+    NodeTerm* terms;
+    size_t num_terms;
+} NodeRowValueConstructor;
+
+// Predefine NodeOperand so it can be referenced before its declared
+typedef struct NodeOperand NodeOperand;
+
+typedef enum {
+    NODE_TERM_TYPE_VALUE,
+    NODE_TERM_TYPE_BIND_PARAMETER,
+    NODE_TERM_TYPE_FUNCTION,
+    NODE_TERM_TYPE_CASE,
+    NODE_TERM_TYPE_CASE_WHEN,
+    NODE_TERM_TYPE_OPERAND,
+    NODE_TERM_TYPE_COLUMN_REF,
+    NODE_TERM_TYPE_COLUMN_REF_TABLE_ALIAS,
+    NODE_TERM_TYPE_ROW_VALUE_CONSTRUCTOR
+} NodeTermType;
+
+struct NodeTerm {
+    NodeTermType type;
+    union {
+        NodeValue* node_value;
+        NodeBindParameter* node_bind_parameter;
+        // todo: CASE and CASE WHEN statements
+        NodeOperand* node_operand;
+        NodeColumnReference* node_column_reference;
+        struct {
+            NodeName* table_alias;
+            NodeColumnReference* node_column_reference_aliased;
+        };
+        NodeRowValueConstructor* node_row_value_constructor;
+    };
+};
+
+typedef struct {
+    bool is_divide; // Either divide or b(multiply)
+    NodeTerm term;
+} NodeTermGroup;
+
+typedef struct {
+    NodeTermGroup* term_groups;
+    size_t num_term_groups;
+} NodeFactor;
+
+typedef struct {
+    bool is_negative;
+    NodeFactor factor;
+} NodeFactorGroup;
+
+typedef struct {
+    NodeFactorGroup* factor_groups;
+    size_t num_factor_groups;
+} NodeSummand;
+
+struct NodeOperand {
+    NodeSummand* summands;
+    size_t num_summands;
+};
+
+// Predefine NodeExpression so it can be referenced before its declared
+typedef struct NodeExpression NodeExpression;
+
+typedef struct {
+    bool has_term;
+    NodeExpression* node_expressions;
+    size_t num_expressions;
+} NodeCase;
 
 // Expressions
 
@@ -256,7 +387,6 @@ typedef struct {
     };
 } NodeSelectExpression;
 
-
 typedef enum {
     NODE_TABLE_EXPRESSION_DEFAULT,
     NODE_TABLE_EXPRESSION_ALIASED
@@ -268,12 +398,6 @@ typedef struct {
     NodeName table_name;
     NodeName table_alias;
 } NodeTableExpression;
-
-typedef struct {
-
-} NodeOperand;
-
-typedef struct NodeExpression NodeExpression;
 
 typedef enum {
     COMPARE_NEQ,
