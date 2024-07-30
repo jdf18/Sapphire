@@ -284,7 +284,7 @@ typedef struct {
 } NodeBindParameter;
 
 typedef struct {
-    char * name;
+    char* name;
     // This can either be an identifier, or a quote
 } NodeName;
 
@@ -339,13 +339,13 @@ typedef struct {
 } NodeTermGroup;
 
 typedef struct {
-    NodeTermGroup* term_groups;
+    NodeTermGroup** term_groups;
     size_t num_term_groups;
 } NodeFactor;
 
 typedef struct {
     bool is_negative;
-    NodeFactor factor;
+    NodeFactor* factor;
 } NodeFactorGroup;
 
 typedef struct {
@@ -433,18 +433,18 @@ typedef struct {
             size_t operand_count;
         } In;
         struct {
-            NodeOperand operandA;
+            NodeOperand* operandA;
         } Like;
         struct {
-            NodeOperand operandA;
-            NodeOperand operandB;
+            NodeOperand* operandA;
+            NodeOperand* operandB;
         } Between;
         struct {} Null;
     };
 } NodeCondition;
 
 typedef struct {
-    NodeCondition* conditions;
+    NodeCondition** conditions;
     size_t conditions_count;
 } NodeAndCondition;
 
@@ -515,6 +515,7 @@ ASTNode* allocate_node() {
 
 void update_name_node(NodeName * node, char * name) {
     node->name = strdup(name);
+    LOG_DEBUG("Updated name node during SQL compilation: %s", name);
 }
 
 void update_select_expression_node(NodeSelectExpression* node, NodeSelectExpressionType type, NodeName* family_name, NodeTerm* term, NodeName* alias) {
@@ -530,6 +531,7 @@ void update_select_expression_node(NodeSelectExpression* node, NodeSelectExpress
             node->term = term;
             break;
     }
+    LOG_DEBUG("Updated select expression node during SQL compilation");
 }
 
 void update_table_expression_node(NodeTableExpression* node, NodeTableExpressionType type, NodeName* table_name, NodeName* table_alias) {
@@ -540,16 +542,17 @@ void update_table_expression_node(NodeTableExpression* node, NodeTableExpression
         case NODE_TABLE_EXPRESSION_DEFAULT:
             update_name_node(&(node->table_name), table_name->name);
     }
+    LOG_DEBUG("Updated table expression node during SQL compilation");
 }
+
+// todo: seperate functions for each type of condition node
 
 void update_condition_node(NodeCondition* node, NodeConditionType type, bool negated) {
     node->type = type;
     node->negated = negated;
-    // The rest of the properties can be set individually after calling this function.
-    // todo: initialise these all to 0 here
 }
 
-void update_and_condition_node(NodeAndCondition* node, NodeCondition* conditions, size_t conditions_count) {
+void update_and_condition_node(NodeAndCondition* node, NodeCondition** conditions, size_t conditions_count) {
     node->conditions = conditions;
     node->conditions_count = conditions_count;
 }
@@ -574,6 +577,7 @@ void update_select_node(
     node->select_node.group_expressions = group_expressions;
     node->select_node.group_expressions_count = group_expressions_count;
     node->select_node.having_expression = having_expression;
+    LOG_DEBUG("Updated select node during SQL compilation");
 }
 
 void update_insert_node(ASTNode * node, const char * table_name, char ** columns, char ** values, size_t column_count, size_t value_count) {
@@ -583,6 +587,7 @@ void update_insert_node(ASTNode * node, const char * table_name, char ** columns
     node->insert_node.values = values;
     node->insert_node.column_count = column_count;
     node->insert_node.value_count = value_count;
+    LOG_DEBUG("Updated insert node during SQL compilation");
 }
 
 // TODO: The rest of these node generators
@@ -593,8 +598,11 @@ bool is_parse_name_possible(Token** p) {
     switch ((*p)->type) {
         case TOKEN_QUOTE:
         case TOKEN_IDENTIFIER:
+            LOG_DEBUG("Parsing name is found to be possible");
             return true;
-        default: return false;
+        default:
+            LOG_DEBUG("Parsing name is not found to be possible");
+            return false;
     }
 }
 
@@ -604,8 +612,10 @@ SQLCompilationResult parse_name(Token** p, NodeName* name_node) {
         case TOKEN_IDENTIFIER:
             update_name_node(name_node, (*p)->value);
             (*p)++;
+            LOG_DEBUG("Successfully parsed name");
             return SQL_COMPILATION_SUCCESS;
         default:
+            LOG_DEBUG("Invalid token whilst parsing name");
             return SQL_COMPILATION_INVALID_TOKEN;
     }
 }
@@ -614,6 +624,7 @@ SQLCompilationResult parse_select_expression(Token** p, NodeSelectExpression* se
     if ((*p)->type == TOKEN_ASTERISK) {
         update_select_expression_node(select_expression_node, NODE_SELECT_EXPRESSION_WILDCARD, NULL, NULL, NULL);
         (*p)++;
+        LOG_DEBUG("Parsing select expression successful (ASTERISK)");
         return SQL_COMPILATION_SUCCESS;
     }
 
@@ -623,10 +634,12 @@ SQLCompilationResult parse_select_expression(Token** p, NodeSelectExpression* se
         parse_name(p, family_name);
         update_select_expression_node(select_expression_node, NODE_SELECT_EXPRESSION_FAMILY_WILDCARD, family_name, NULL, NULL);
         (*p) += 2;
+        LOG_DEBUG("Parsing select expression successful (FAMILY ASTERISK)");
         return SQL_COMPILATION_SUCCESS;
     }
 
-    // todo: Term and possible alias, optional AS keyword
+    LOG_ERROR("Not implemented yet. parse_select_expression in sql_compiler.c.  see todo comment");
+    // todo: Term and possible alias cases, optional AS keyword
 
     return SQL_COMPILATION_NO_VALID_PATHS;
 }
@@ -642,6 +655,7 @@ SQLCompilationResult parse_table_expression(Token** p, NodeTableExpression* tabl
     if (!is_parse_name_possible(p)) {
         if ((*p)->type != TOKEN_AS) {
             update_table_expression_node(table_expression_node, NODE_TABLE_EXPRESSION_DEFAULT, table_name, NULL);
+            LOG_DEBUG("Parsing table expression successful (DEFAULT)");
             return SQL_COMPILATION_SUCCESS;
         }
         (*p)++; // Skip the AS token
@@ -653,26 +667,31 @@ SQLCompilationResult parse_table_expression(Token** p, NodeTableExpression* tabl
     if (result != SQL_COMPILATION_SUCCESS) return result;
 
     update_table_expression_node(table_expression_node, NODE_TABLE_EXPRESSION_ALIASED, table_name, table_alias);
+    LOG_DEBUG("Parsing table expression successful (ALIASED)");
     return SQL_COMPILATION_SUCCESS;
 }
 
 SQLCompilationResult parse_operand(Token** p, NodeOperand * operand_node) {
     // todo
+    LOG_ERROR("Not implemented error");
     return SQL_COMPILATION_SUCCESS;
 }
 
 SQLCompilationResult parse_condition(Token** p, NodeCondition * condition_node) {
     // todo
+    LOG_ERROR("Not implemented error");
     return SQL_COMPILATION_SUCCESS;
 }
 
 SQLCompilationResult parse_and_condition(Token** p, NodeAndCondition * condition_and_node) {
     // todo
+    LOG_ERROR("Not implemented error");
     return SQL_COMPILATION_SUCCESS;
 }
 
 SQLCompilationResult parse_expression(Token** p, NodeExpression* expression_node) {
     // todo
+    LOG_ERROR("Not implemented error");
     return SQL_COMPILATION_SUCCESS;
 }
 
@@ -780,7 +799,7 @@ SQLCompilationResult parse_select_statement(Token** p, ASTNode* ast) {
             PointerArray_add(expressions_pointer_array, expression);
         }
 
-        // Convert dynamic pointer array into a Expressions list
+        // Convert dynamic pointer array into an Expressions list
         NodeExpression * expressions_array;
         expressions_array = malloc(sizeof(NodeExpression) * expressions_pointer_array->size);
         for (int i = 0; i < expressions_pointer_array->size; i++) {
@@ -857,3 +876,5 @@ SQLCompilationResult compile_sql_statement(const char* input, Instruction* instr
     // * Compilation completed successfully
     return SQL_COMPILATION_SUCCESS;
 }
+
+
