@@ -23,6 +23,9 @@ set(SOURCES
         src/table.c
         src/cursor.c
         src/database.c
+        include/db_ir.h
+        src/vm.c
+        src/vm.h
 )
 
 set(TEST_SOURCES
