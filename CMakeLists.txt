@@ -16,7 +16,6 @@ include_directories(include)
 
 # Add source files
 set(SOURCES
-        src/statements.c
         src/main.c
         src/btree.c
         src/pager.c

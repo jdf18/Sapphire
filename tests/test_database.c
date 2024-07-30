@@ -42,24 +42,6 @@ void REPL(char* input) {
                     continue;
             }
         }
-
-        // Compile command
-        Statement statement;
-        switch (compile_statement(input, &statement)) {
-            case (PREPARE_SUCCESS):
-                break;
-            case (PREPARE_SYNTAX_ERROR):
-                printf("Syntax error: could not parse the statement.\n");
-                continue;
-            case (PREPARE_NEGATIVE_ID):
-                printf("Syntax error: ID should be positive.\n");
-                continue;
-            case (PREPARE_UNRECOGNISED_COMMAND):
-                printf("Unrecognised command at the start of '%s'.\n", input);
-                continue;
-        }
-
-        execute_statement(&statement);
     }
 }
 
