@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define DATABASE_COLUMN_NAME_MAX_SIZE 16
+#define DATABASE_TABLE_NAME_MAX_SIZE 16
+
 typedef struct {
     uint32_t version;
     uint32_t page_size;
