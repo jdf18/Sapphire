@@ -24,7 +24,6 @@ set(SOURCES
         src/cursor.c
         src/database.c
         src/vm.c
-        src/vm.h
 )
 
 set(TEST_SOURCES
