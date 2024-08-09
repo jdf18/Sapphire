@@ -13,6 +13,21 @@
 
 #define SINGLE_INDENT "    "
 
+Pager* pager_new(const char* filename) {
+    FILE* file = open_file(filename);
+
+    Pager* pager = malloc(sizeof(Pager));
+    pager->file = file;
+    pager->file_length = 0;
+    pager->num_pages = 0;
+
+    for (uint32_t i = 0; i < TABLE_MAX_PAGES; i++) {
+        pager->pages[i] = NULL;
+    }
+
+    return pager;
+}
+
 // Memory allocation and freeing
 Pager* pager_open(const char* filename) {
     FILE* file = open_file(filename);
@@ -39,15 +54,19 @@ Pager* pager_open(const char* filename) {
 
 
 void pager_fetch_page(Pager* pager, uint32_t page_num) {
-    Page* page = malloc(PAGE_SIZE);
+    Page* page;
     uint32_t num_pages = pager->file_length / PAGE_SIZE;
 
     if (page_num < num_pages) {
         // Existing page so read bytes of file into Page*
+        page = malloc(PAGE_SIZE);
         read_file_into_memory(pager->file, page, PAGE_SIZE, PAGE_SIZE*page_num);
+        LOG_DEBUG("Caching page %d from db file.", page_num);
     } else {
         // Empty page is being created so not required to read from file
+        page = calloc(PAGE_SIZE, 1);
         pager->num_pages = page_num + 1;
+        LOG_DEBUG("Allocated memory for page %d.", page_num);
     }
     pager->pages[page_num] = page;
 }
@@ -111,8 +130,9 @@ void print_tree(Pager* pager, uint32_t page_num, uint32_t indentation_level) {
 void pager_flush(Pager* pager, uint32_t page_num) {
     if (pager->pages[page_num] == NULL) {
         LOG_ERROR("Tried to flush a null page.\n");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     memory_write_to_file(pager->file, pager->pages[page_num], PAGE_SIZE, PAGE_SIZE*page_num);
+    LOG_DEBUG("Flushed page %d to file.", page_num);
 }

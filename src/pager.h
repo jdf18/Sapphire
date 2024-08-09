@@ -26,6 +26,7 @@ typedef struct {
 
 
 // Memory allocation
+Pager* pager_new(const char* filename);
 Pager* pager_open(const char* filename);
 
 // Returns a pointer to the specified page

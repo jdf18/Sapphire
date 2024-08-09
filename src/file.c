@@ -8,7 +8,7 @@
 
 
 FILE* open_file(const char* filename) {
-    FILE* file = fopen(filename, "r+b");
+    FILE* file = fopen(filename, "w+b");
     if (file == NULL) {
         LOG_ERROR("Failed to open the file.\n");
         exit(EXIT_FAILURE);

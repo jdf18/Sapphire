@@ -20,6 +20,7 @@ typedef struct {
     Table** tables;
 } Database;
 
+Database* create_db(const char* filepath);
 Database* open_db(const char* filepath);
 void close_db(Database* database);
 

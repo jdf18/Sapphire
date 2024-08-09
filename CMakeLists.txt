@@ -4,6 +4,9 @@ project(Sapphire)
 # Set the compiler
 set(CMAKE_C_COMPILER "C:/Program Files/mingw64/bin/gcc.exe")
 
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+
 #SET(CMAKE_BUILD_TYPE Debug)
 #SET(CMAKE_C_FLAGS_DEBUG "-D_DEBUG")
 
@@ -24,6 +27,7 @@ set(SOURCES
         src/cursor.c
         src/database.c
         src/vm.c
+        src/ir_compiler.c
 )
 
 set(TEST_SOURCES

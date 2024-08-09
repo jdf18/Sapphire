@@ -71,6 +71,18 @@ void parse_db_tables(Database* database, Page* root_page) {
     LOG_DEBUG("All database tables have been read from the file. ");
 };
 
+void create_db_file(Database* database, Page* root_page) {
+    // Add the magic sequence at the start of the root page
+    memcpy(root_page + DB_HEADER_MAGIC_OFFSET, DB_HEADER_MAGIC_STRING, DB_HEADER_MAGIC_SIZE);
+    LOG_DEBUG("Written magic string to root page in cache.");
+
+    uint32_t* version = malloc(DB_HEADER_VERSION_SIZE);
+    *version = (uint32_t)DB_CURRENT_FILE_VERSION;
+    memcpy((void*)root_page + DB_HEADER_VERSION_OFFSET, version, DB_HEADER_VERSION_SIZE);
+    LOG_DEBUG("Written database version %d to root page in cache.", *version);
+
+}
+
 void parse_db_file(Database* database, Page* root_page) {
     // The file should start with the 4 character sequence "DBJF", defined in MAGIC_STRING
     char* magic = malloc(5);
@@ -81,6 +93,7 @@ void parse_db_file(Database* database, Page* root_page) {
         LOG_ERROR("Magic string at start of db file is incorrect. Can not parse.");
         exit(EXIT_FAILURE);
     }
+    LOG_INFO("Magic string was found at the start of db file");
 
     // Retrieve version, page size, and number of tables from the header
     uint32_t* version = (void*)((void*)root_page + DB_HEADER_VERSION_OFFSET);
@@ -103,6 +116,22 @@ void parse_db_file(Database* database, Page* root_page) {
     parse_db_tables(database, root_page);
 }
 
+Database* create_db(const char* filepath) {
+    Database* database = malloc(sizeof(Database));
+    database->version = 1;
+    database->page_size = PAGE_SIZE;
+    database->num_tables = 0;
+
+    Pager* pager = pager_new(filepath);
+    Page* root_page = get_page(pager,0);
+    database->pager = pager;
+
+    create_db_file(database, root_page);
+
+    parse_db_file(database, root_page);
+
+    return database;
+}
 
 Database* open_db(const char* filepath) {
     Database* database = malloc(sizeof(Database));
