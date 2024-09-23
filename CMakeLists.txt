@@ -6,43 +6,30 @@ project(Sapphire)
 #SET(CMAKE_BUILD_TYPE Debug)
 #SET(CMAKE_C_FLAGS_DEBUG "-D_DEBUG")
 
-# Define include directories for Sapphire
-include_directories(include)
+# * ===== TOPAZ LOGGING =====
 
 # * Add Topaz logging library and configure
+# see https://github.com/jdf18/Topaz/
+
 # Set custom logging settings
 add_definitions(-DLOG_FORMAT="%s - [%s] - [%s]: %s%s")
+
+# compile the project
 add_subdirectory(lib/Topaz)
 
 
 # * ===== SAPPHIRE DB CORE =====
 
-# Add source files and create library
-set(SOURCES
-        src/main.c
-        src/btree.c
-        src/pager.c
-        src/file.c
-        src/table.c
-        src/cursor.c
-        src/database.c
-        src/vm.c
-        src/ir_compiler.c
-)
-add_library(SapphireDB STATIC ${SOURCES})
-
-# Link the libraries to the project
-target_link_libraries(SapphireDB PRIVATE Topaz)
-
+add_subdirectory(src/core)
+# see /src/core/CMakeLists.txt
 
 # * ===== SAPPHIRE REPL CONSOLE =====
 
 # Define the testing executable
-add_executable(SapphireREPL tests/test_database.c)
+add_executable(SapphireREPL src/repl/repl.c)
 
-# Link the libraries to the project
-target_link_libraries(SapphireREPL PRIVATE SapphireDB Topaz)
-
+# Link database core and logging libraries to the REPL executable
+target_link_libraries(SapphireREPL PRIVATE SapphireCore Topaz)
 
 # Specify output directory for object files and the executable
 set_target_properties(SapphireREPL PROPERTIES

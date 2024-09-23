@@ -2,7 +2,7 @@
 #define SAPPHIRE_VM_H
 
 #include <stdlib.h>
-#include "db_ir.h"
+#include "../include/db_ir.h"
 
 typedef enum {
     EXECUTION_SUCCESS,

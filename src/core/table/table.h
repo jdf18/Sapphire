@@ -1,7 +1,7 @@
 #ifndef SAPPHIRE_TABLE_H
 #define SAPPHIRE_TABLE_H
 
-#include "pager.h"
+#include "../pager/pager.h"
 
 #include <stdint.h>
 

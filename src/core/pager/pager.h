@@ -1,7 +1,7 @@
 #ifndef SAPPHIRE_PAGER_H
 #define SAPPHIRE_PAGER_H
 
-#include "btree.h"
+#include "../btree/btree.h"
 
 #include <stdio.h>
 #include <stdint.h>

@@ -1,5 +1,5 @@
-#ifndef SAPPHIRE_TEST_DATABASE_H
-#define SAPPHIRE_TEST_DATABASE_H
+#ifndef SAPPHIRE_REPL_H
+#define SAPPHIRE_REPL_H
 
 
 #define MAX_INPUT_SIZE 1024
@@ -27,4 +27,4 @@ typedef struct {
     MyValue value;
 } MyRow;
 
-#endif //SAPPHIRE_TEST_DATABASE_H
+#endif //SAPPHIRE_REPL_H

@@ -1,5 +1,5 @@
 #include "table.h"
-#include "file.h"
+#include "../file/file.h"
 
 #include "topaz.h"
 

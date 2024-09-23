@@ -2,10 +2,9 @@
 #define SAPPHIRE_DB_IR_H
 
 #include <stdbool.h>
+#include <stdio.h>
 
-#include "topaz.h"
-
-#include "database.h"
+#include "definitions.h"
 
 // * === EXPRESSIONS ===
 
@@ -89,7 +88,7 @@ bool is_expression_condition_negative(ExpressionConditionType type) {
         case EXPRESSION_CONDITION_TYPE_NOT_EXPRESSION:
             return true;
         default:
-            LOG_WARN("Switch statement is not exhastive (db_ir.is_expression_condition_negative)");
+            printf("Switch statement is not exhastive (db_ir.is_expression_condition_negative)");
             return false;
     }
 }
