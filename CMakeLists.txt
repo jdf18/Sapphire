@@ -23,11 +23,13 @@ add_subdirectory(lib/Topaz)
 
 
 # * ===== SAPPHIRE DB CORE =====
+# * see /src/core/CMakeLists.txt
 
 add_subdirectory(src/core)
-# see /src/core/CMakeLists.txt
+
 
 # * ===== SAPPHIRE REPL CONSOLE =====
+# * A basic Read Eval Print Loop for executing commands on the VM
 
 # Define the testing executable
 add_executable(SapphireREPL src/repl/repl.c)
