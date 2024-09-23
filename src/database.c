@@ -1,6 +1,6 @@
 #include "database.h"
 
-#include "../libs/Topaz/topaz.h"
+#include "topaz.h"
 
 void parse_db_tables(Database* database, Page* root_page) {
     uint32_t num_tables = database->num_tables;

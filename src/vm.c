@@ -1,6 +1,6 @@
 #include "vm.h"
 
-#include "../libs/Topaz/topaz.h"
+#include "topaz.h"
 
 typedef struct {
     // todo

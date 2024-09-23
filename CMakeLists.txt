@@ -1,23 +1,23 @@
 cmake_minimum_required(VERSION 3.10)
 project(Sapphire)
 
-# Set the compiler
-set(CMAKE_C_COMPILER "C:/Program Files/mingw64/bin/gcc.exe")
-
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
 
 #SET(CMAKE_BUILD_TYPE Debug)
 #SET(CMAKE_C_FLAGS_DEBUG "-D_DEBUG")
 
-#include_directories(libs/Topaz/include)
-# * Set custom logging settings
-add_definitions(-DLOG_FORMAT="%s - [%s] - [%s]: %s%s")
-
-# Define include directories
+# Define include directories for Sapphire
 include_directories(include)
 
-# Add source files
+# * Add Topaz logging library and configure
+# Set custom logging settings
+add_definitions(-DLOG_FORMAT="%s - [%s] - [%s]: %s%s")
+add_subdirectory(libs/Topaz)
+
+
+# * ===== SAPPHIRE DB CORE =====
+
+# Add source files and create library
 set(SOURCES
         src/main.c
         src/btree.c
@@ -29,21 +29,22 @@ set(SOURCES
         src/vm.c
         src/ir_compiler.c
 )
-
-set(TEST_SOURCES
-        tests/test_database.c
-)
-
-# Create the library
 add_library(SapphireDB STATIC ${SOURCES})
 
+# Link the libraries to the project
+target_link_libraries(SapphireDB PRIVATE Topaz)
+
+
+# * ===== SAPPHIRE REPL CONSOLE =====
+
 # Define the testing executable
-add_executable(TestDatabase ${TEST_SOURCES})
+add_executable(TestDatabase tests/test_database.c)
 
 # Link the libraries to the project
-target_link_libraries(TestDatabase PRIVATE SapphireDB "C:/Users/Jacob/CLionProjects/Sapphire/libs/Topaz/lib/libTopaz.a")
+target_link_libraries(TestDatabase PRIVATE SapphireDB Topaz)
 
-## Specify output directory for object files and the executable
+
+# Specify output directory for object files and the executable
 set_target_properties(TestDatabase PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
         OUTPUT_NAME main

@@ -1,6 +1,6 @@
 #include "cursor.h"
 
-#include "../libs/Topaz/topaz.h"
+#include "topaz.h"
 
 #include <stdlib.h>
 #include <stdint.h>

@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "../libs/Topaz/topaz.h"
+#include "topaz.h"
 
 #include "database.h"
 

@@ -4,7 +4,7 @@
 #include "btree.h"
 #include "file.h"
 
-#include "../libs/Topaz/topaz.h"
+#include "topaz.h"
 
 #include <stdint.h>
 #include <stdio.h>

@@ -1,6 +1,6 @@
 #include "file.h"
 
-#include "../libs/Topaz/topaz.h"
+#include "topaz.h"
 
 #include <stdio.h>
 #include <stdlib.h>
