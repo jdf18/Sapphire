@@ -10,7 +10,7 @@
 
 /.idea/
 /cmake-build-debug-mingw/
+/bin/
 test.db.bak
 test.db
 *.db
-test.db

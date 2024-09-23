@@ -12,7 +12,7 @@ include_directories(include)
 # * Add Topaz logging library and configure
 # Set custom logging settings
 add_definitions(-DLOG_FORMAT="%s - [%s] - [%s]: %s%s")
-add_subdirectory(libs/Topaz)
+add_subdirectory(lib/Topaz)
 
 
 # * ===== SAPPHIRE DB CORE =====
@@ -38,14 +38,14 @@ target_link_libraries(SapphireDB PRIVATE Topaz)
 # * ===== SAPPHIRE REPL CONSOLE =====
 
 # Define the testing executable
-add_executable(TestDatabase tests/test_database.c)
+add_executable(SapphireREPL tests/test_database.c)
 
 # Link the libraries to the project
-target_link_libraries(TestDatabase PRIVATE SapphireDB Topaz)
+target_link_libraries(SapphireREPL PRIVATE SapphireDB Topaz)
 
 
 # Specify output directory for object files and the executable
-set_target_properties(TestDatabase PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-        OUTPUT_NAME main
+set_target_properties(SapphireREPL PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
+        OUTPUT_NAME sapphire_repl
 )
