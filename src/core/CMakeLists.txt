@@ -58,6 +58,5 @@ target_link_libraries(SapphireCore PRIVATE btree database file pager table utils
 # Add the shared headers directory for all core libraries
 # All core modules will have access to the headers in /src/core/common and /src/core/include
 target_include_directories(SapphireCore
-        PRIVATE ${MODULE_INCLUDE_DIRS}                  # Path to the common headers
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include      # Include headers and expose as interface for the core library
+        INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
