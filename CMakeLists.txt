@@ -6,10 +6,14 @@ project(Sapphire)
 #SET(CMAKE_BUILD_TYPE Debug)
 #SET(CMAKE_C_FLAGS_DEBUG "-D_DEBUG")
 
-# * ===== TOPAZ LOGGING =====
+include(InitGitSubmodules.cmake)
 
+# * ===== TOPAZ LOGGING =====
 # * Add Topaz logging library and configure
 # see https://github.com/jdf18/Topaz/
+
+# Check the submodule is up-to-date
+update_git_submodule(${CMAKE_SOURCE_DIR}/lib/Topaz)
 
 # Set custom logging settings
 add_definitions(-DLOG_FORMAT="%s - [%s] - [%s]: %s%s")
