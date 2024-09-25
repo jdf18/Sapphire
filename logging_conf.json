@@ -1,0 +1,18 @@
+{
+  "formatting": {
+    "message": "%TIME: [%CODE] - [%FUNC] %FILE:%LINE => ",
+    "time": "%m/%d/%Y %H:%M:%S"
+  },
+
+  "levels": {
+    "DEBUG": 10,
+    "INFO": 20,
+    "WARN": 30,
+    "ERROR": 40
+  },
+
+  "options": {
+    "allow_change_level_at_runtime": true,
+    "minimum_level_logged": 10
+  }
+}

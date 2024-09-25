@@ -55,7 +55,7 @@ void REPL(char* input) {
 }
 
 int main(int argc, char* argv[]) {
-    set_application_logging_level(DEBUG);
+    set_application_logging_level(10);
 
     setbuf(stdout, 0);
 
