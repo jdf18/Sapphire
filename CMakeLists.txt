@@ -15,10 +15,8 @@ include(InitGitSubmodules.cmake)
 # Check the submodule is up-to-date
 update_git_submodule(${CMAKE_SOURCE_DIR}/lib/Topaz)
 
-# Set custom logging settings
-add_definitions(-DLOG_FORMAT="%s - [%s] - [%s]: %s%s")
-
 # compile the project
+set(TOPAZ_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/logging_config.json)
 add_subdirectory(lib/Topaz)
 
 

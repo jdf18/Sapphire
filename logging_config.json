@@ -1,4 +1,6 @@
 {
+  "version": "0.1.0",
+
   "formatting": {
     "message": "%TIME: [%CODE] - [%FUNC] %FILE:%LINE => ",
     "time": "%m/%d/%Y %H:%M:%S"
